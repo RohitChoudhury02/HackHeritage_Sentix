@@ -1,0 +1,25 @@
+name: Install TensorFlow
+
+on:
+  push:
+    branches:
+      - main  # Adjust this to match your main branch
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v2
+
+    - name: Set up Python
+      uses: actions/setup-python@v2
+      with:
+        python-version: 3.9  # Adjust the Python version as needed
+
+    - name: Upgrade pip
+      run: pip install --upgrade pip
+
+    - name: Install TensorFlow
+      run: pip install --disable-pip-version-check --target . -r requirements.txt
