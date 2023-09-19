@@ -16,9 +16,6 @@ jobs:
         python-version: '3.10'
     - name: Upgrade pip
       run: pip install --upgrade pip
-
-    - name: Install TensorFlow
-      run: pip install --disable-pip-version-check --target . -r requirements.txt
     - name: Add conda to system path
       run: |
         # $CONDA is an environment variable pointing to the root of the miniconda directory
