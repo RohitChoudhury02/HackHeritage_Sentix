@@ -18,11 +18,11 @@ from bs4 import BeautifulSoup
 class Item(BaseModel):
     link: str
 # Load the tokenizer
-with open("tokenizer.pkl", "rb") as file:
+with open("tokenizer_sih.pkl", "rb") as file:
     tokenizer = pickle.load(file)
 
 # Load your LSTM model (assuming it's defined elsewhere)
-lstm = load_model("sentiment_model.h5")
+lstm = load_model("sentix_model.h5")
 model = load_model('emix.model.h5')  # Replace with the path to your saved model
 
 # Define the label mapping for emotions
