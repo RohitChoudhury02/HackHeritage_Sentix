@@ -3,8 +3,6 @@ import pickle
 import uvicorn
 from pydantic import BaseModel
 import numpy as np
-from tensorflow import keras
-from tensorflow.keras.preprocessing.sequence import pad_sequences
 import re
 import requests
 from bs4 import BeautifulSoup
@@ -16,6 +14,34 @@ with open("tokenizer.pkl", "rb") as file:
 
 # Load your LSTM model (assuming it's defined elsewhere)
 lstm = keras.models.load_model("sentiment_model.h5")
+def pad_seq(sequences, maxlen, padding_value=0):
+    """
+    Pad a list of sequences to a specified maximum length.
+
+    Args:
+    sequences (list of lists): The input sequences, where each sequence is a list of integers.
+    maxlen (int): The desired maximum sequence length.
+    padding_value (int, optional): The value used for padding. Default is 0.
+
+    Returns:
+    numpy.ndarray: An array containing the padded sequences.
+    """
+    num_sequences = len(sequences)
+    padded_sequences = np.zeros((num_sequences, maxlen), dtype=int)
+
+    for i, seq in enumerate(sequences):
+        if len(seq) <= maxlen:
+            padded_sequences[i, :len(seq)] = seq
+        else:
+            padded_sequences[i, :] = seq[:maxlen]
+
+    return padded_sequences
+
+
+
+
+
+
 
 def clean_tweet(tweet):
     # Remove URLs
@@ -66,7 +92,7 @@ def predict(link: str):
     X_seq = tokenizer.texts_to_sequences([X])
     
     # Pad the sequence of token IDs
-    X_seq = pad_sequences(X_seq, maxlen=100)  # Use X_seq instead of X
+    X_seq = pad_seq(X_seq, maxlen=100)  # Use X_seq instead of X
     
     # Assuming you have loaded the lstm model earlier
     custom_sentiment_prob = lstm.predict(X_seq)[0][0]
