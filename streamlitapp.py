@@ -35,9 +35,9 @@ def home_page():
     def page4():
         plt.title("instagram")
     # Load your LSTM model, tokenizer, and other necessary data
-        loaded_model = load_model("sentix_model.h5")
-        model = load_model('emix.model.h5')
-        with open('tokenizer_sih.pkl', 'rb') as tokenizer_file:
+        loaded_model = load_model("./models/sentix_model.h5")
+        model = load_model('./models/emix.model.h5')
+        with open('./models/tokenizer_sih.pkl', 'rb') as tokenizer_file:
             tokenizer = pickle.load(tokenizer_file)
 
         # Define custom functions for text cleaning and sentiment categorization
@@ -160,11 +160,11 @@ def page2():
 def page3():
     st.title("Load a CSV file to predict output")
     with st.spinner("Loading..."):
-        with open('senti.pkl', 'rb') as model_file:
+        with open('./models/senti.pkl', 'rb') as model_file:
                 loaded_model = pickle.load(model_file)
         #loaded_model = load_model("sentix_model.h5")
         # Load the tokenizer used during model training
-        with open('tokenizer_sih.pkl', 'rb') as tokenizer_file:
+        with open('./models/tokenizer_sih.pkl', 'rb') as tokenizer_file:
             tokenizer = pickle.load(tokenizer_file)
 
         def clean_text(text):
