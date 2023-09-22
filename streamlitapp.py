@@ -21,20 +21,117 @@ PAGE_PAGE1 = "Page 1"
 PAGE_PAGE2 = "Page 2"
 PAGE_PAGE3 = "Page 3"
 # Define the label mapping for emotions
-label_mapping = {0: 'anger', 1: 'fear', 2: 'joy', 3: 'sadness', 4: 'neutral', 5: 'surprise', 6: 'shame', 7: 'disgust'}
+label_mapping = {0: 'anger', 1: 'dread', 2: 'joy', 3: 'sadness', 4: 'neutral', 5: 'surprise', 6: 'shame', 7: 'disgust'}
 # Create a sidebar with navigation links
 st.sidebar.title("Navigation")
-page = st.sidebar.selectbox("Choose a page", [PAGE_HOME, PAGE_PAGE1, PAGE_PAGE2, PAGE_PAGE3],key="page_selector")
+page = st.sidebar.selectbox("Choose a page", [PAGE_HOME,PAGE_PAGE2, 'UPLOAD_YOUR_CSV'],key="page_selector")
 
 def home_page():
     st.title("This is Sentix")
     st.write("Your go to sentiment analysis tool!")
 
     st.subheader("Analyze sentiment using link of different social media posts")
-    page=st.sidebar.selectbox("Choose a social media platform", ["Instagram","Facebook","Linkedin"],key="platform_selector")
+    page=st.sidebar.selectbox("Choose a social media platform", ["Instagram","Linkedin","Youtube"],key="platform_selector")
     def page4():
         plt.title("instagram")
     # Load your LSTM model, tokenizer, and other necessary data
+        loaded_model = load_model("./models/sentix_model.h5")
+        model = load_model('./models/emix.model.h5')
+        with open('./models/tokenizer_sih.pkl', 'rb') as tokenizer_file:
+            tokenizer = pickle.load(tokenizer_file)
+
+        # Define custom functions for text cleaning and sentiment categorization
+        def clean_text(tweet):
+            # Add your custom text cleaning logic here
+            tweet = re.sub(r"http\S+|www\S+|https\S+", "", tweet)
+            tweet = re.sub(r"@\w+|#\w+", "", tweet)
+            tweet = re.sub(r"[^a-zA-Z\s]", "", tweet)
+            tweet = tweet.lower()
+            tweet = re.sub(r"\s+", " ", tweet).strip()
+            return tweet
+        def preprocess_data(data):
+            vocab_size = 5000  # Should match the vocab size used during model training
+            onehot_repr = [one_hot(words, vocab_size) for words in [data]]
+            sent_length = 50  # Should match the sequence length used during model training
+            docs = pad_sequences(onehot_repr, padding='pre', maxlen=sent_length)
+            return docs
+
+        def categorize_sentiment(predictions):
+            thresholds = [(0.97, "Highly Positive"), (0.8, "Positive"), (0.3, "Neutral"), (0.2, "Negative")]
+            for threshold, label in thresholds:
+                if predictions >= threshold:
+                    return label
+            return "Very Negative"
+
+        
+        # Streamlit UI
+        
+
+        # Text input box for user to enter a link
+        link_input = st.text_input("Enter a link of instagram to analyze sentiment:")
+
+        # Button to trigger scraping and sentiment analysis
+        if st.button("Analyze Sentiment"):
+            if link_input:
+                with st.spinner("Predicting sentiment..."):
+                    try:
+                        # Scrape data from the provided link
+                        response = requests.get(link_input)
+                        soup = BeautifulSoup(response.content, "html.parser")
+                        text_data = soup.get_text()
+                        preprocessed_text = preprocess_data(text_data)
+                        # Clean the scraped text
+                        cleaned_text = clean_text(text_data)
+
+                        # Tokenize and pad the text data
+                        text_sequences = tokenizer.texts_to_sequences([cleaned_text])
+                        text_sequences = pad_sequences(text_sequences, maxlen=100)
+
+                        # Make predictions using the loaded model
+                        predictions = loaded_model.predict(text_sequences)
+                        e_prediction = model.predict(preprocessed_text)
+                        print(e_prediction)
+                        predicted_label = label_mapping[np.argmax(e_prediction)]
+                        print(predicted_label)
+                        # Categorize sentiment
+                        sentiment = categorize_sentiment(predictions[0][0])
+                        
+
+                        # Display sentiment analysis results
+                        st.subheader("Sentiment Analysis Results:")
+                        #st.markdown(f"**Scraped Text:**\n{cleaned_text}")
+                        st.markdown(f"**Sentiment:** {sentiment}")
+                        st.markdown(f"**Emotion:** {predicted_label}")
+                        print("Sentiment:", sentiment)
+                        emoji_size=400
+                        emoji_positive=(
+                            f'<div style="display: flex; justify-content: center; align-items: center; height: 80vh;">'
+                            f'<span style="font-size: {emoji_size}px;">😀</span>'
+                            f'</div>'
+                        )
+                        emoji_negative=(
+                            f'<div style="display: flex; justify-content: center; align-items: center; height: 80vh;">'
+                            f'<span style="font-size: {emoji_size}px;">😞</span>'
+                            f'</div>'
+                        )
+                        emoji_neutral=(
+                            f'<div style="display: flex; justify-content: center; align-items: center; height: 80vh;">'
+                            f'<span style="font-size: {emoji_size}px;">😐</span>'
+                            f'</div>'
+                        )
+                        if(sentiment=='Positive'):
+                            st.markdown(emoji_positive, unsafe_allow_html=True)
+                        if(sentiment=='Negative'):
+                            st.markdown(emoji_negative, unsafe_allow_html=True)
+                        if(sentiment=='Neutral'):
+                            st.markdown(emoji_neutral, unsafe_allow_html=True)
+                    except Exception as e:
+                        st.error(f"Error: {str(e)}")
+                        print("Error:", str(e))
+            else:
+                st.warning("Please enter a link for scraping and sentiment analysis.")
+    def page5():
+        plt.title("Linkedin")
         loaded_model = load_model("./models/sentix_model.h5")
         model = load_model('./models/emix.model.h5')
         with open('./models/tokenizer_sih.pkl', 'rb') as tokenizer_file:
@@ -81,7 +178,7 @@ def home_page():
         
 
         # Text input box for user to enter a link
-        link_input = st.text_input("Enter a link to analyze sentiment:")
+        link_input = st.text_input("Enter a link of Linkedin to analyze sentiment:")
 
         # Button to trigger scraping and sentiment analysis
         if st.button("Analyze Sentiment"):
@@ -92,9 +189,14 @@ def home_page():
                         response = requests.get(link_input)
                         soup = BeautifulSoup(response.content, "html.parser")
                         text_data = soup.get_text()
-                        preprocessed_text = preprocess_data(text_data)
+                        start_index = text_data.find("Report this post")
+                        end_index = text_data.find("Like")
+                        substring = text_data[start_index+51:end_index]
+                        cleaned_text = re.sub(r'\s+', ' ', substring)
+                        preprocessed_text = preprocess_data(cleaned_text)
+                        #preprocessed_text = preprocess_data(text_data)
                         # Clean the scraped text
-                        cleaned_text = clean_text(text_data)
+                        #cleaned_text = clean_text(text_data)
 
                         # Tokenize and pad the text data
                         text_sequences = tokenizer.texts_to_sequences([cleaned_text])
@@ -103,40 +205,152 @@ def home_page():
                         # Make predictions using the loaded model
                         predictions = loaded_model.predict(text_sequences)
                         e_prediction = model.predict(preprocessed_text)
+                        print(e_prediction)
                         predicted_label = label_mapping[np.argmax(e_prediction)]
+                        print(predicted_label)
                         # Categorize sentiment
                         sentiment = categorize_sentiment(predictions[0][0])
+                        
 
                         # Display sentiment analysis results
                         st.subheader("Sentiment Analysis Results:")
-                        st.markdown(f"**Scraped Text:**\n{cleaned_text}")
+                        #st.markdown(f"**Scraped Text:**\n{cleaned_text}")
                         st.markdown(f"**Sentiment:** {sentiment}")
                         st.markdown(f"**Emotion:** {predicted_label}")
-                        # Generate and display the Word Cloud
-                        st.subheader("Word Cloud of Scraped Text:")
-                        wordcloud = generate_wordcloud(cleaned_text)
-                        st.pyplot(wordcloud)
                         
-                        # Debugging: Print the values for troubleshooting
-                        print("Scraped Text:", text_data)
                         print("Sentiment:", sentiment)
+                        emoji_size=400
+                        emoji_positive=(
+                            f'<div style="display: flex; justify-content: center; align-items: center; height: 80vh;">'
+                            f'<span style="font-size: {emoji_size}px;">😀</span>'
+                            f'</div>'
+                        )
+                        emoji_negative=(
+                            f'<div style="display: flex; justify-content: center; align-items: center; height: 80vh;">'
+                            f'<span style="font-size: {emoji_size}px;">😞</span>'
+                            f'</div>'
+                        )
+                        emoji_neutral=(
+                            f'<div style="display: flex; justify-content: center; align-items: center; height: 80vh;">'
+                            f'<span style="font-size: {emoji_size}px;">😐</span>'
+                            f'</div>'
+                        )
+                        if(sentiment=='Positive'):
+                            st.markdown(emoji_positive, unsafe_allow_html=True)
+                        if(sentiment=='Negative'):
+                            st.markdown(emoji_negative, unsafe_allow_html=True)
+                        if(sentiment=='Neutral'):
+                            st.markdown(emoji_neutral, unsafe_allow_html=True)
 
                     except Exception as e:
                         st.error(f"Error: {str(e)}")
                         print("Error:", str(e))
             else:
                 st.warning("Please enter a link for scraping and sentiment analysis.")
-    def page5():
-        plt.title("facebook")
-        st.subheader("Soon to be added!! :)")
+        
     def page6():
-        plt.title("linkedin")
-        st.subheader("Soon to be added!! :)")
+        plt.title("Youtube")
+        loaded_model = load_model("./models/sentix_model.h5")
+        model = load_model('./models/emix.model.h5')
+        with open('./models/tokenizer_sih.pkl', 'rb') as tokenizer_file:
+            tokenizer = pickle.load(tokenizer_file)
+
+        # Define custom functions for text cleaning and sentiment categorization
+        def clean_text(tweet):
+            # Add your custom text cleaning logic here
+            tweet = re.sub(r"http\S+|www\S+|https\S+", "", tweet)
+            tweet = re.sub(r"@\w+|#\w+", "", tweet)
+            tweet = re.sub(r"[^a-zA-Z\s]", "", tweet)
+            tweet = tweet.lower()
+            tweet = re.sub(r"\s+", " ", tweet).strip()
+            return tweet
+        def preprocess_data(data):
+            vocab_size = 5000  # Should match the vocab size used during model training
+            onehot_repr = [one_hot(words, vocab_size) for words in [data]]
+            sent_length = 50  # Should match the sequence length used during model training
+            docs = pad_sequences(onehot_repr, padding='pre', maxlen=sent_length)
+            return docs
+
+        def categorize_sentiment(predictions):
+            thresholds = [(0.97, "Highly Positive"), (0.8, "Positive"), (0.3, "Neutral"), (0.2, "Negative")]
+            for threshold, label in thresholds:
+                if predictions >= threshold:
+                    return label
+            return "Very Negative"
+
+       
+        link_input = st.text_input("Enter a link of youtube to analyze sentiment:")
+
+        # Button to trigger scraping and sentiment analysis
+        if st.button("Analyze Sentiment"):
+            if link_input:
+                with st.spinner("Predicting sentiment..."):
+                    try:
+                        # Scrape data from the provided link
+                        response = requests.get(link_input)
+                        soup = BeautifulSoup(response.content, "html.parser")
+                        description_element = soup.find('meta', {'name': 'description'})
+                        if description_element:
+                          video_description = description_element['content']
+
+                        preprocessed_text = preprocess_data(video_description)
+                        cleaned_text=clean_text(video_description)
+                        text_sequences = tokenizer.texts_to_sequences([cleaned_text])
+                        text_sequences = pad_sequences(text_sequences, maxlen=100)
+
+                        # Make predictions using the loaded model
+                        predictions = loaded_model.predict(text_sequences)
+                        e_prediction = model.predict(preprocessed_text)
+                        print(e_prediction)
+                        predicted_label = label_mapping[np.argmax(e_prediction)]
+                        print(predicted_label)
+                        # Categorize sentiment
+                        sentiment = categorize_sentiment(predictions[0][0])
+                        
+
+                        # Display sentiment analysis results
+                        st.subheader("Sentiment Analysis Results:")
+                        #st.markdown(f"**Scraped Text:**\n{cleaned_text}")
+                        st.markdown(f"**Sentiment:** {sentiment}")
+                        st.markdown(f"**Emotion:** {predicted_label}")
+                        print("Sentiment:", sentiment)
+                        emoji_size=400
+                        emoji_positive=(
+                            f'<div style="display: flex; justify-content: center; align-items: center; height: 80vh;">'
+                            f'<span style="font-size: {emoji_size}px;">😀</span>'
+                            f'</div>'
+                        )
+                        emoji_negative=(
+                            f'<div style="display: flex; justify-content: center; align-items: center; height: 80vh;">'
+                            f'<span style="font-size: {emoji_size}px;">😞</span>'
+                            f'</div>'
+                        )
+                        emoji_neutral=(
+                            f'<div style="display: flex; justify-content: center; align-items: center; height: 80vh;">'
+                            f'<span style="font-size: {emoji_size}px;">😐</span>'
+                            f'</div>'
+                        )
+                        if(sentiment=='Positive'):
+                            st.markdown(emoji_positive, unsafe_allow_html=True)
+                        if(sentiment=='Negative'):
+                            st.markdown(emoji_negative, unsafe_allow_html=True)
+                        if(sentiment=='Neutral'):
+                            st.markdown(emoji_neutral, unsafe_allow_html=True)
+
+                    except Exception as e:
+                        st.error(f"Error: {str(e)}")
+                        print("Error:", str(e))
+            else:
+                st.warning("Please enter a link for scraping and sentiment analysis.")
+        
+
+       
+        
     if page == "Instagram":
         page4()
-    elif page == "Facebook":
-        page5()
     elif page == "Linkedin":
+        page5()
+    elif page == "Youtube":
         page6()
 
 
@@ -230,6 +444,8 @@ def page3():
             st.title("Word Cloud for Positive Sentiment Tweets")  
             # Filter positive tweets
             pos_tweets = df[df["Sentiment"] == "Positive"]
+            pos_tweets=pos_tweets.astype(str)
+            print(pos_tweets)
         
             # Join positive tweets into a single string
             txt = " ".join(tweet.lower() for tweet in pos_tweets["Tweet"])
@@ -262,7 +478,7 @@ def page3():
             # Filter positive tweets
             st.title("Word Cloud for Neutral Sentiment Tweets")
             neu_tweets = df[df["Sentiment"] == "Neutral"]
-        
+            neu_tweets = neu_tweets.astype(str)
             # Join positive tweets into a single string
             txt = " ".join(tweet.lower() for tweet in neu_tweets["Tweet"])
 
@@ -277,7 +493,7 @@ def page3():
             st.title("Word Cloud for Negative Sentiment Tweets")
             # Filter positive tweets
             neg_tweets = df[df["Sentiment"] == "Negative"]
-        
+            neg_tweets=neg_tweets.astype(str)
             # Join positive tweets into a single string
             txt = " ".join(tweet.lower() for tweet in neg_tweets["Tweet"])
 
@@ -292,7 +508,7 @@ def page3():
             st.title("Word Cloud for Very Negative Sentiment Tweets")
             # Filter positive tweets
             v_neg_tweets = df[df["Sentiment"] == "Very Negative"]
-        
+            v_neg_tweets=v_neg_tweets.astype(str)
             # Join positive tweets into a single string
             txt = " ".join(tweet.lower() for tweet in v_neg_tweets["Tweet"])
 
@@ -314,7 +530,9 @@ def page3():
             st.pyplot(wordcloud)
 
             st.title("Distribution of Tweet Length (Character Count)")
+            df["Tweet"]=df["Tweet"].astype(str)
             df['tweet_length'] = df['Tweet'].apply(len)
+
             # Display a histogram plot of tweet lengths
             fig=plt.figure(figsize=(8, 6))
             sns.histplot(df['tweet_length'], bins=50)
@@ -373,6 +591,6 @@ if __name__ == "__main__":
      #   page1()
     elif page == PAGE_PAGE2:
         page2()
-    elif page == PAGE_PAGE3:
+    elif page == 'UPLOAD_YOUR_CSV':
         page3()
 
