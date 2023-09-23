@@ -3,23 +3,27 @@ import pandas as pd
 import numpy as np
 import re
 import pickle
+from nltk.corpus import stopwords
+from nltk.stem import WordNetLemmatizer
+from tensorflow.keras.preprocessing.text import Tokenizer
+from tensorflow.keras.preprocessing.sequence import pad_sequences
+from sklearn.preprocessing import LabelEncoder
+from tensorflow.keras.models import load_model
 from bs4 import BeautifulSoup
 import requests
 from tensorflow.keras.preprocessing.sequence import pad_sequences
 from tensorflow.keras.preprocessing.text import Tokenizer
 from tensorflow.keras.models import load_model
 from tensorflow.keras.preprocessing.text import one_hot
-# Define label mapping for emotions
-label_mapping = {0: 'anger', 1: 'dread', 2: 'joy', 3: 'sadness', 4: 'neutral', 5: 'surprise', 6: 'shame', 7: 'disgust'}
 
-# Load your sentiment analysis model and tokenizer here
-with open('../models/model.pkl', 'rb') as tokenizer_file:
-    loaded_model = pickle.load(tokenizer_file)
+
+with open('../models/tokenizer_emo.pkl', 'rb') as tokenizer_file:
+    tokenizer_emo = pickle.load(tokenizer_file)
 with open('../models/tokenizer_sih.pkl', 'rb') as tokenizer_file:
     tokenizer = pickle.load(tokenizer_file)
+with open('../models/model.pkl', 'rb') as file:
+    loaded_model = pickle.load(file)
 
-# Load your emotion analysis model here
-# model = load_model('../models/emix.model.h5')
 
 # Define custom functions for text cleaning and sentiment categorization
 def clean_text(tweet):
@@ -45,42 +49,38 @@ def categorize_sentiment(predictions):
     return "Very Negative"
 
 # Function to perform emotion analysis (you can use a more advanced model here)
-def perform_emotion_analysis(text):
-    # preprocessed_text = preprocess_data(text)
-    # e_prediction = model.predict(preprocessed_text)
-    # predicted_label = label_mapping[np.argmax(e_prediction)]
-    return 0
+def predict_emotion(text):
+    # Load the trained model
+    with open('../models/emo_model.pkl', 'rb') as model_file:
+            emo_model = pickle.load(model_file)  # Replace with the path to your trained model
+
+    # Text normalization
+    normalized_text = text
+
+    # Tokenize and pad the input text
+    tokenizer = Tokenizer(oov_token='UNK')
+    tokenizer.fit_on_texts([normalized_text])
+    sequences = tokenizer.texts_to_sequences([normalized_text])
+    padded_sequences = pad_sequences(sequences, maxlen=229, truncating='pre')
+
+    # Make the prediction
+    predicted_probs = emo_model.predict(padded_sequences)
+    predicted_class = np.argmax(predicted_probs, axis=-1)
+
+    # Map the predicted class back to the original emotion label (use the LabelEncoder)
+    label_encoder = LabelEncoder()
+    label_encoder.classes_ = np.array(['anger 😡','fear 😨','joy 🙂','love 🥰','sadness 😓','surprise 😙 '])  # Replace with your class labels
+    predicted_emotion = label_encoder.inverse_transform(predicted_class)
+
+    return predicted_emotion[0], predicted_probs[0]
 
 # Streamlit app
 def app():
     
-   
-    # Define custom styles
-    button_style = (
-        "background-color: #4CAF50; color: white; border-radius: 5px;"
-        "padding: 10px 20px; font-size: 16px; border: none; cursor: pointer;"
-    )
-
-    loader_style = (
-        "color: #4CAF50; display: inline-block; border: 4px solid #f3f3f3; "
-        "border-top: 4px solid #3498db; border-radius: 50%; width: 20px; height: 20px; "
-        "animation: spin 2s linear infinite; margin-right: 10px;"
-    )
-
-    # Add custom CSS
-    st.markdown(
-        f'<style>.stButton > button{{ {button_style} }}</style>',
-        unsafe_allow_html=True,
-    )
-    
-    st.markdown(
-        f'<style>@keyframes spin {{ 0% {{ transform: rotate(0deg); }} 100% {{ transform: rotate(360deg); }} }}</style>',
-        unsafe_allow_html=True,
-    )
     st.title("Social Media Sentiment Analysis")
 
     # Create tabs for different social media platforms
-    selected_tab = st.selectbox("Select a Social Media Platform", ["YouTube 🔥", "Instagram ✅", "LinkedIn 💥"])
+    selected_tab = st.selectbox("Select a Social Media Platform", ["YouTube", "Instagram", "LinkedIn"])
 
     # Input box for the user to enter a link
     link = st.text_input(f"Enter a {selected_tab} Link:")
@@ -103,35 +103,44 @@ def app():
                             text_sequences = pad_sequences(text_sequences, maxlen=100)
                             predictions = loaded_model.predict(text_sequences)
                             sentiment = categorize_sentiment(predictions[0][0])
-                            
-                            # Perform emotion analysis
-                            # emotion = perform_emotion_analysis(cleaned_text)
+                            predicted_emotion, predicted_probs= predict_emotion(cleaned_text)
 
-                            # Display results
                             st.subheader("Sentiment:")
                             st.write(sentiment)
-
+                            st.subheader("Polarity:")
+                            st.write(predictions[0][0])
+                            if sentiment == 'Positive' or 'Neutral' and predicted_emotion =='sadness':
+                                predicted_emotion = 'ambiguous 🤓 '
                             st.subheader("Emotion:")
-                            # st.write(emotion)
+                            st.write(predicted_emotion)
+                            st.subheader("Polarity:")
+                            label_class= np.array(['anger 😡','fear 😨','joy 🙂','love 🥰','sadness 😓','surprise 😙 '])
+                            data = pd.DataFrame({'Emotion Label': label_class,'Predicted Probs': predicted_probs})
+                            st.table(data)
                     elif selected_tab == "Instagram":
                         # Extract text from Instagram post (you may need to adapt this for Instagram)
                         text_data = soup.get_text()
                         cleaned_text = clean_text(text_data)
+                        print(cleaned_text)
                         # Perform sentiment analysis
                         text_sequences = tokenizer.texts_to_sequences([cleaned_text])
                         text_sequences = pad_sequences(text_sequences, maxlen=100)
                         predictions = loaded_model.predict(text_sequences)
-                        sentiment = categorize_sentiment(predictions[0][0])
-                        
-                        # Perform emotion analysis
-                        # emotion = perform_emotion_analysis(cleaned_text)
+                        sentiment = categorize_sentiment(predictions)
+                        predicted_emotion, predicted_probs = predict_emotion(cleaned_text)
 
-                        # Display results
                         st.subheader("Sentiment:")
                         st.write(sentiment)
-
+                        st.subheader("Polarity:")
+                        st.write(predictions[0][0])
+                        if sentiment == 'Positive' or 'Neutral' and predicted_emotion =='sadness':
+                            predicted_emotion = 'ambiguous 🤓 '
                         st.subheader("Emotion:")
-                        # st.write(emotion)
+                        st.write(predicted_emotion)
+                        st.subheader("Polarity:")
+                        label_class= np.array(['anger 😡','fear 😨','joy 🙂','love 🥰','sadness 😓','surprise 😙 '])
+                        data = pd.DataFrame({'Emotion Label': label_class,'Predicted Probs': predicted_probs})
+                        st.table(data)
                     elif selected_tab == "LinkedIn":
                         # Extract text from LinkedIn post (you may need to adapt this for LinkedIn)
                         text_data = soup.get_text()
@@ -146,15 +155,21 @@ def app():
                         predictions = loaded_model.predict(text_sequences)
                         sentiment = categorize_sentiment(predictions[0][0])
                         
-                        # Perform emotion analysis
-                        # emotion = perform_emotion_analysis(cleaned_text)
+                        predicted_emotion, predicted_probs = predict_emotion(cleaned_text)
 
-                        # Display results
+                            # Display results
                         st.subheader("Sentiment:")
                         st.write(sentiment)
-
+                        st.subheader("Polarity:")
+                        st.write(predictions[0][0])
+                        if sentiment == 'Positive' or 'Neutral' and predicted_emotion =='sadness':
+                            predicted_emotion = 'ambiguous 🤓 '
                         st.subheader("Emotion:")
-                        # st.write(emotion)
+                        st.write(predicted_emotion)
+                        st.subheader("Polarity:")
+                        label_class= np.array(['anger 😡','fear 😨','joy 🙂','love 🥰','sadness 😓','surprise 😙 '])
+                        data = pd.DataFrame({'Emotion Label': label_class,'Predicted Probs': predicted_probs})
+                        st.table(data)
                 except Exception as e:
                     st.error(f"Error: {str(e)}")
                         
