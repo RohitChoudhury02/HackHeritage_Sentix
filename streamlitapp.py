@@ -27,6 +27,22 @@ st.sidebar.title("Navigation")
 page = st.sidebar.selectbox("Choose a page", [PAGE_HOME,PAGE_PAGE2, 'UPLOAD_YOUR_CSV'],key="page_selector")
 
 def home_page():
+    st.title("Text Animation Example")
+
+# Define a CSS class to apply the text color change effect
+    st.markdown("""
+        <style>
+            .color-change {
+                transition: color 0.5s;
+            }
+            .color-change:hover {
+                color: red;
+            }
+        </style>
+    """, unsafe_allow_html=True)
+
+    # Apply the CSS class to a text element
+    st.markdown('<p class="color-change">Hover over me to change color</p>', unsafe_allow_html=True)
     st.title("This is Sentix")
     st.write("Your go to sentiment analysis tool!")
 
@@ -35,7 +51,8 @@ def home_page():
     def page4():
         plt.title("instagram")
     # Load your LSTM model, tokenizer, and other necessary data
-        loaded_model = load_model("./models/sentix_model.h5")
+        with open('./models/model.pkl', 'rb') as tokenizer_file:
+            loaded_model = pickle.load(tokenizer_file)
         model = load_model('./models/emix.model.h5')
         with open('./models/tokenizer_sih.pkl', 'rb') as tokenizer_file:
             tokenizer = pickle.load(tokenizer_file)
