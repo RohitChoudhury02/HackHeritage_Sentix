@@ -103,13 +103,9 @@ def app():
                             text_sequences = pad_sequences(text_sequences, maxlen=100)
                             predictions = loaded_model.predict(text_sequences)
                             sentiment = categorize_sentiment(predictions[0][0])
-<<<<<<< HEAD
                             print(sentiment)
                             # Perform emotion analysis
                             # emotion = perform_emotion_analysis(cleaned_text)
-=======
-                            predicted_emotion, predicted_probs= predict_emotion(cleaned_text)
->>>>>>> 08d2a1cd43c2a4de190bc71440663e74fb52e78a
 
                             st.subheader("Sentiment:")
                             st.write(sentiment)

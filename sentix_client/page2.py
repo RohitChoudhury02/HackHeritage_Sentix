@@ -81,167 +81,167 @@ img.wordcloud {
 
 def app():
     st.title("Upload your CSV 📊📋📈")
-    
-    with open('../models/senti.pkl', 'rb') as model_file:
-            loaded_model = pickle.load(model_file)
-        #loaded_model = load_model("sentix_model.h5")
-    # Load the tokenizer used during model training
-    with open('../models/tokenizer_sih.pkl', 'rb') as tokenizer_file:
-        tokenizer = pickle.load(tokenizer_file)
+    with st.spinner("Please wait while our model understands your data..."):
+        with open('../models/senti.pkl', 'rb') as model_file:
+                loaded_model = pickle.load(model_file)
+            #loaded_model = load_model("sentix_model.h5")
+        # Load the tokenizer used during model training
+        with open('../models/tokenizer_sih.pkl', 'rb') as tokenizer_file:
+            tokenizer = pickle.load(tokenizer_file)
 
-    def clean_text(text):
-        cleaned_text = text.lower()
-        cleaned_text = cleaned_text.replace('!', ' ')
-        return cleaned_text
+        def clean_text(text):
+            cleaned_text = text.lower()
+            cleaned_text = cleaned_text.replace('!', ' ')
+            return cleaned_text
 
-    st.sidebar.title("Settings")
-    uploaded_file = st.sidebar.file_uploader("Upload a CSV file", type=["csv"])
-    if uploaded_file is not None:
-        df = pd.read_csv(uploaded_file)
-        st.sidebar.subheader("Data Preview")
-        st.sidebar.write(df.head())
-        df = df.rename(columns={df.columns[1]: "Tweet"})
-        # Assuming your text data column is named 'Tweet'
-        text_data = df['Tweet'].astype(str)
+        st.sidebar.title("Settings")
+        uploaded_file = st.sidebar.file_uploader("Upload a CSV file", type=["csv"])
+        if uploaded_file is not None:
+            df = pd.read_csv(uploaded_file)
+            st.sidebar.subheader("Data Preview")
+            st.sidebar.write(df.head())
+            df = df.rename(columns={df.columns[1]: "Tweet"})
+            # Assuming your text data column is named 'Tweet'
+            text_data = df['Tweet'].astype(str)
 
-        # Tokenize and pad the text data
-        text_sequences = tokenizer.texts_to_sequences(text_data)
-        text_sequences = pad_sequences(text_sequences, maxlen=100)  # Assuming max_sequence_length is 100
+            # Tokenize and pad the text data
+            text_sequences = tokenizer.texts_to_sequences(text_data)
+            text_sequences = pad_sequences(text_sequences, maxlen=100)  # Assuming max_sequence_length is 100
 
-            # Make predictions using the loaded model
-        predictions = loaded_model.predict(text_sequences)
+                # Make predictions using the loaded model
+            predictions = loaded_model.predict(text_sequences)
 
-            # Add predictions to the DataFrame
-        df['Predicted_Sentiment'] = predictions
-        thresholds = [(0.97, "Highly Positive"), (0.8, "Positive"), (0.3, "Neutral"), (0.2, "Negative")]
+                # Add predictions to the DataFrame
+            df['Predicted_Sentiment'] = predictions
+            thresholds = [(0.97, "Highly Positive"), (0.8, "Positive"), (0.3, "Neutral"), (0.2, "Negative")]
 
-        def categorize_sentiment(predictions):
-            for threshold, label in thresholds:
-                if predictions >= threshold:
-                    return label
-            return "Very Negative"
+            def categorize_sentiment(predictions):
+                for threshold, label in thresholds:
+                    if predictions >= threshold:
+                        return label
+                return "Very Negative"
 
-        df['Sentiment'] = predictions
-        df['Sentiment'] = df['Sentiment'].apply(categorize_sentiment)
-        st.write("Predictions and Sentiments:")
-        st.write(df[['Tweet', 'Sentiment','Predicted_Sentiment']])
-            
-        st.markdown('Sentiment Distribution as BAR chart')
-        fig, ax = plt.subplots(figsize=(8, 6))
-        sns.countplot(data=df, x='Sentiment', palette='viridis')
-        plt.title('Sentiment Distribution in Training Dataset')
-        plt.xlabel('Sentiment Labels')
-        plt.ylabel('Count')
-
-
-        st.pyplot(fig)
-
-            
-        st.markdown('Sentiment Distribution as PIE chart')
-
-        fig=plt.figure(figsize=(8, 6))
-        sentiment_count = df["Sentiment"].value_counts()
-        plt.pie(sentiment_count, labels=sentiment_count.index, autopct='%1.1f%%', shadow=False, startangle=140)
-        st.pyplot(fig)
-        st.markdown("Word Cloud for Positive Sentiment Tweets")  
-
-        pos_tweets = df[df["Sentiment"] == "Positive"]
-        pos_tweets=pos_tweets.astype(str)
-        print(pos_tweets)
-        txt = " ".join(tweet.lower() for tweet in pos_tweets["Tweet"])
-        wordcloud = generate_wordcloud(txt)
+            df['Sentiment'] = predictions
+            df['Sentiment'] = df['Sentiment'].apply(categorize_sentiment)
+            st.write("Predictions and Sentiments:")
+            st.write(df[['Tweet', 'Sentiment','Predicted_Sentiment']])
+                
+            st.markdown('Sentiment Distribution as BAR chart')
+            fig, ax = plt.subplots(figsize=(8, 6))
+            sns.countplot(data=df, x='Sentiment', palette='viridis')
+            plt.title('Sentiment Distribution in Training Dataset')
+            plt.xlabel('Sentiment Labels')
+            plt.ylabel('Count')
 
 
-        st.pyplot(wordcloud)
-        h_pos_tweets = df[df["Sentiment"] == "Highly Positive"]
-        txt = " ".join(tweet.lower() for tweet in h_pos_tweets["Tweet"])
-        wordcloud = generate_wordcloud(txt)
-        st.markdown("Word Cloud for Highly Positive Sentiment Tweets") 
-        st.pyplot(wordcloud)
+            st.pyplot(fig)
 
-        st.markdown("Word Cloud for Neutral Sentiment Tweets")
-        neu_tweets = df[df["Sentiment"] == "Neutral"]
-        neu_tweets = neu_tweets.astype(str)
-            # Join positive tweets into a single string
-        txt = " ".join(tweet.lower() for tweet in neu_tweets["Tweet"])
+                
+            st.markdown('Sentiment Distribution as PIE chart')
 
-        wordcloud = generate_wordcloud(txt)
-        st.pyplot(wordcloud)
+            fig=plt.figure(figsize=(8, 6))
+            sentiment_count = df["Sentiment"].value_counts()
+            plt.pie(sentiment_count, labels=sentiment_count.index, autopct='%1.1f%%', shadow=False, startangle=140)
+            st.pyplot(fig)
+            st.markdown("Word Cloud for Positive Sentiment Tweets")  
 
-    
-            
-        st.markdown("Word Cloud for Negative Sentiment Tweets")
-        neg_tweets = df[df["Sentiment"] == "Negative"]
-        neg_tweets=neg_tweets.astype(str)
-        txt = " ".join(tweet.lower() for tweet in neg_tweets["Tweet"])
-        wordcloud = generate_wordcloud(txt)
-        st.pyplot(wordcloud)
-
-        st.markdown("Word Cloud for Very Negative Sentiment Tweets")
-            
-        v_neg_tweets = df[df["Sentiment"] == "Very Negative"]
-        v_neg_tweets=v_neg_tweets.astype(str)
-        # Join positive tweets into a single string
-        txt = " ".join(tweet.lower() for tweet in v_neg_tweets["Tweet"])
-
-        wordcloud = generate_wordcloud(txt)
-
-        st.pyplot(wordcloud)
-
-        st.write("       ")
-        st.write("       ")
-
-        # Clean the text data using the custom cleaner
-        text_data = text_data.apply(clean_text)
-        wordcloud = generate_wordcloud(text_data)
-        st.pyplot(wordcloud)
-
-        st.markdown("Distribution of Tweet Length (Character Count)")
-        df["Tweet"]=df["Tweet"].astype(str)
-        df['tweet_length'] = df['Tweet'].apply(len)
-
-        # Display a histogram plot of tweet lengths
-        fig=plt.figure(figsize=(8, 6))
-        sns.histplot(df['tweet_length'], bins=50)
-        plt.title("Distribution of Text Length (Character Count)")
-        plt.xlabel("Text Length")
-        plt.ylabel("Count")
-        st.pyplot(fig)
+            pos_tweets = df[df["Sentiment"] == "Positive"]
+            pos_tweets=pos_tweets.astype(str)
+            print(pos_tweets)
+            txt = " ".join(tweet.lower() for tweet in pos_tweets["Tweet"])
+            wordcloud = generate_wordcloud(txt)
 
 
-        # Collect all words from all tweets into a single list
-        all_words = []
-        for t in df['Tweet']:
-            all_words.extend(t.split())
+            st.pyplot(wordcloud)
+            h_pos_tweets = df[df["Sentiment"] == "Highly Positive"]
+            txt = " ".join(tweet.lower() for tweet in h_pos_tweets["Tweet"])
+            wordcloud = generate_wordcloud(txt)
+            st.markdown("Word Cloud for Highly Positive Sentiment Tweets") 
+            st.pyplot(wordcloud)
 
+            st.markdown("Word Cloud for Neutral Sentiment Tweets")
+            neu_tweets = df[df["Sentiment"] == "Neutral"]
+            neu_tweets = neu_tweets.astype(str)
+                # Join positive tweets into a single string
+            txt = " ".join(tweet.lower() for tweet in neu_tweets["Tweet"])
 
-        # Calculate and display the number of unique words
-        unique_word_count = len(set(all_words))
-        st.markdown(f"Number of unique words: {unique_word_count}")
+            wordcloud = generate_wordcloud(txt)
+            st.pyplot(wordcloud)
 
-        freq_dist = FreqDist(all_words)
-
-        st.markdown('Top 50 Most Common Words')
-
-        # Plot the top 50 most common words
-        fig=plt.figure(figsize=(20, 5))
-        plt.title('Top 50 most common words')
-        plt.xticks(fontsize=15)
         
-        freq_dist.plot(50, cumulative=False)
-        st.pyplot(fig)
+                
+            st.markdown("Word Cloud for Negative Sentiment Tweets")
+            neg_tweets = df[df["Sentiment"] == "Negative"]
+            neg_tweets=neg_tweets.astype(str)
+            txt = " ".join(tweet.lower() for tweet in neg_tweets["Tweet"])
+            wordcloud = generate_wordcloud(txt)
+            st.pyplot(wordcloud)
+
+            st.markdown("Word Cloud for Very Negative Sentiment Tweets")
+                
+            v_neg_tweets = df[df["Sentiment"] == "Very Negative"]
+            v_neg_tweets=v_neg_tweets.astype(str)
+            # Join positive tweets into a single string
+            txt = " ".join(tweet.lower() for tweet in v_neg_tweets["Tweet"])
+
+            wordcloud = generate_wordcloud(txt)
+
+            st.pyplot(wordcloud)
+
+            st.write("       ")
+            st.write("       ")
+
+            # Clean the text data using the custom cleaner
+            text_data = text_data.apply(clean_text)
+            wordcloud = generate_wordcloud(text_data)
+            st.pyplot(wordcloud)
+
+            st.markdown("Distribution of Tweet Length (Character Count)")
+            df["Tweet"]=df["Tweet"].astype(str)
+            df['tweet_length'] = df['Tweet'].apply(len)
+
+            # Display a histogram plot of tweet lengths
+            fig=plt.figure(figsize=(8, 6))
+            sns.histplot(df['tweet_length'], bins=50)
+            plt.title("Distribution of Text Length (Character Count)")
+            plt.xlabel("Text Length")
+            plt.ylabel("Count")
+            st.pyplot(fig)
 
 
-def generate_wordcloud(text_data):
-    # Join the text data into a single string
-    text = ' '.join(text_data)
+            # Collect all words from all tweets into a single list
+            all_words = []
+            for t in df['Tweet']:
+                all_words.extend(t.split())
 
-    # Generate the WordCloud
-    wordcloud = WordCloud(width=800, height=400, background_color='white').generate(text)
 
-    # Display the WordCloud using Matplotlib
-    plt.figure(figsize=(11, 10))
-    plt.imshow(wordcloud, interpolation='bilinear')
-    plt.title("Word Cloud of Tweet Text")
-    plt.axis('off')
-    return plt
+            # Calculate and display the number of unique words
+            unique_word_count = len(set(all_words))
+            st.markdown(f"Number of unique words: {unique_word_count}")
+
+            freq_dist = FreqDist(all_words)
+
+            st.markdown('Top 50 Most Common Words')
+
+            # Plot the top 50 most common words
+            fig=plt.figure(figsize=(20, 5))
+            plt.title('Top 50 most common words')
+            plt.xticks(fontsize=15)
+            
+            freq_dist.plot(50, cumulative=False)
+            st.pyplot(fig)
+
+
+    def generate_wordcloud(text_data):
+        # Join the text data into a single string
+        text = ' '.join(text_data)
+
+        # Generate the WordCloud
+        wordcloud = WordCloud(width=800, height=400, background_color='white').generate(text)
+
+        # Display the WordCloud using Matplotlib
+        plt.figure(figsize=(11, 10))
+        plt.imshow(wordcloud, interpolation='bilinear')
+        plt.title("Word Cloud of Tweet Text")
+        plt.axis('off')
+        return plt
