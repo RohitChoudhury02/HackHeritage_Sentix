@@ -80,7 +80,7 @@ def app():
     st.title("Social Media Sentiment Analysis")
 
     # Create tabs for different social media platforms
-    selected_tab = st.selectbox("Select a Social Media Platform", ["YouTube 🔥", "Instagram ✅", "LinkedIn 💥"])
+    selected_tab = st.selectbox("Select a Social Media Platform", ["YouTube", "Instagram", "LinkedIn"])
 
     # Input box for the user to enter a link
     link = st.text_input(f"Enter a {selected_tab} Link:")
@@ -103,7 +103,7 @@ def app():
                             text_sequences = pad_sequences(text_sequences, maxlen=100)
                             predictions = loaded_model.predict(text_sequences)
                             sentiment = categorize_sentiment(predictions[0][0])
-                            
+                            print(sentiment)
                             # Perform emotion analysis
                             # emotion = perform_emotion_analysis(cleaned_text)
 
