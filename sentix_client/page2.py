@@ -101,11 +101,10 @@ def app():
         st.sidebar.subheader("Data Preview")
         st.sidebar.write(df.head())
         df = df.rename(columns={df.columns[1]: "Tweet"})
-           
-            # Assuming your text data column is named 'Tweet'
+        # Assuming your text data column is named 'Tweet'
         text_data = df['Tweet'].astype(str)
 
-            # Tokenize and pad the text data
+        # Tokenize and pad the text data
         text_sequences = tokenizer.texts_to_sequences(text_data)
         text_sequences = pad_sequences(text_sequences, maxlen=100)  # Assuming max_sequence_length is 100
 
@@ -127,7 +126,6 @@ def app():
         st.write("Predictions and Sentiments:")
         st.write(df[['Tweet', 'Sentiment','Predicted_Sentiment']])
             
-            # Class Distribution in 'label' column with 'viridis' color palette
         st.markdown('Sentiment Distribution as BAR chart')
         fig, ax = plt.subplots(figsize=(8, 6))
         sns.countplot(data=df, x='Sentiment', palette='viridis')
@@ -135,103 +133,65 @@ def app():
         plt.xlabel('Sentiment Labels')
         plt.ylabel('Count')
 
-            # Display the plot using st.pyplot()
+
         st.pyplot(fig)
-        # Create an interactive Altair chart
+
             
         st.markdown('Sentiment Distribution as PIE chart')
-            # Create a pie chart
+
         fig=plt.figure(figsize=(8, 6))
         sentiment_count = df["Sentiment"].value_counts()
         plt.pie(sentiment_count, labels=sentiment_count.index, autopct='%1.1f%%', shadow=False, startangle=140)
-            
-
-            # Display the pie chart using st.pyplot()
         st.pyplot(fig)
         st.markdown("Word Cloud for Positive Sentiment Tweets")  
-            # Filter positive tweets
+
         pos_tweets = df[df["Sentiment"] == "Positive"]
         pos_tweets=pos_tweets.astype(str)
         print(pos_tweets)
-        
-            # Join positive tweets into a single string
         txt = " ".join(tweet.lower() for tweet in pos_tweets["Tweet"])
-
-            # Generate the word cloud
         wordcloud = generate_wordcloud(txt)
 
-            # Display the word cloud using st.image()
+
         st.pyplot(wordcloud)
-
-            # Optionally, you can add other elements or text to your Streamlit app
-            
-            
-            # Filter positive tweets
         h_pos_tweets = df[df["Sentiment"] == "Highly Positive"]
-        
-            # Join positive tweets into a single string
         txt = " ".join(tweet.lower() for tweet in h_pos_tweets["Tweet"])
-
-            # Generate the word cloud
         wordcloud = generate_wordcloud(txt)
-
-            # Display the word cloud using st.image()
         st.markdown("Word Cloud for Highly Positive Sentiment Tweets") 
         st.pyplot(wordcloud)
 
-            # Optionally, you can add other elements or text to your Streamlit app
-             
-
-            # Filter positive tweets
         st.markdown("Word Cloud for Neutral Sentiment Tweets")
         neu_tweets = df[df["Sentiment"] == "Neutral"]
         neu_tweets = neu_tweets.astype(str)
             # Join positive tweets into a single string
         txt = " ".join(tweet.lower() for tweet in neu_tweets["Tweet"])
 
-            # Generate the word cloud
         wordcloud = generate_wordcloud(txt)
-
-            # Display the word cloud using st.image()
         st.pyplot(wordcloud)
 
-            # Optionally, you can add other elements or text to your Streamlit app
+    
             
         st.markdown("Word Cloud for Negative Sentiment Tweets")
-            # Filter positive tweets
         neg_tweets = df[df["Sentiment"] == "Negative"]
         neg_tweets=neg_tweets.astype(str)
-        # Join positive tweets into a single string
         txt = " ".join(tweet.lower() for tweet in neg_tweets["Tweet"])
-
-            # Generate the word cloud
         wordcloud = generate_wordcloud(txt)
-
-            # Display the word cloud using st.image()
         st.pyplot(wordcloud)
 
-            # Optionally, you can add other elements or text to your Streamlit app
-            
         st.markdown("Word Cloud for Very Negative Sentiment Tweets")
-            # Filter positive tweets
+            
         v_neg_tweets = df[df["Sentiment"] == "Very Negative"]
         v_neg_tweets=v_neg_tweets.astype(str)
-            # Join positive tweets into a single string
+        # Join positive tweets into a single string
         txt = " ".join(tweet.lower() for tweet in v_neg_tweets["Tweet"])
 
-            # Generate the word cloud
         wordcloud = generate_wordcloud(txt)
 
-            # Display the word cloud using st.image()
         st.pyplot(wordcloud)
 
-            # Optionally, you can add other elements or text to your Streamlit app
-            
-            
         st.write("       ")
         st.write("       ")
 
-            # Clean the text data using the custom cleaner
+        # Clean the text data using the custom cleaner
         text_data = text_data.apply(clean_text)
         wordcloud = generate_wordcloud(text_data)
         st.pyplot(wordcloud)
@@ -240,38 +200,34 @@ def app():
         df["Tweet"]=df["Tweet"].astype(str)
         df['tweet_length'] = df['Tweet'].apply(len)
 
-            # Display a histogram plot of tweet lengths
+        # Display a histogram plot of tweet lengths
         fig=plt.figure(figsize=(8, 6))
         sns.histplot(df['tweet_length'], bins=50)
         plt.title("Distribution of Text Length (Character Count)")
         plt.xlabel("Text Length")
         plt.ylabel("Count")
-
-            # Display the plot using st.pyplot()
         st.pyplot(fig)
 
 
-            # Collect all words from all tweets into a single list
+        # Collect all words from all tweets into a single list
         all_words = []
         for t in df['Tweet']:
             all_words.extend(t.split())
 
 
-            # Calculate and display the number of unique words
+        # Calculate and display the number of unique words
         unique_word_count = len(set(all_words))
         st.markdown(f"Number of unique words: {unique_word_count}")
 
-            # Frequency Distribution
         freq_dist = FreqDist(all_words)
 
-            # Create a Streamlit app
         st.markdown('Top 50 Most Common Words')
 
-            # Plot the top 50 most common words
+        # Plot the top 50 most common words
         fig=plt.figure(figsize=(20, 5))
         plt.title('Top 50 most common words')
         plt.xticks(fontsize=15)
-            # Display the frequency distribution plot using st.pyplot()
+        
         freq_dist.plot(50, cumulative=False)
         st.pyplot(fig)
 
