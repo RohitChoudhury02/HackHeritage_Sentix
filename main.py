@@ -18,12 +18,12 @@ from bs4 import BeautifulSoup
 class Item(BaseModel):
     link: str
 # Load the tokenizer
-with open("tokenizer_sih.pkl", "rb") as file:
+with open("./models/tokenizer_sih.pkl", "rb") as file:
     tokenizer = pickle.load(file)
 
 # Load your LSTM model (assuming it's defined elsewhere)
-lstm = load_model("sentix_model.h5")
-model = load_model('emix.model.h5')  # Replace with the path to your saved model
+lstm = load_model("./models/sentix_model.h5")
+model = load_model('./models/emix.model.h5')  # Replace with the path to your saved model
 
 # Define the label mapping for emotions
 label_mapping = {0: 'anger', 1: 'fear', 2: 'joy', 3: 'sadness', 4: 'neutral', 5: 'surprise', 6: 'shame', 7: 'disgust'}
@@ -112,4 +112,4 @@ def predict(link: str):
 # 5. Run the API with uvicorn
 #    Will run on http://127.0.0.1:8000
 if __name__ == "__main__":
-    uvicorn.run("main:app", host="0.0.0.0", port=8000, reload=True)
+    uvicorn.run("main:app", host="127.0.0.1", port=8000, reload=True)
